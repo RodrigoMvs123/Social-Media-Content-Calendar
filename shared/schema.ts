@@ -1,10 +1,10 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User schema (keeping original)
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+// User schema
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
@@ -17,15 +17,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// Added Post schema for the social media calendar
-export const posts = pgTable("posts", {
-  id: serial("id").primaryKey(),
+// Post schema for the social media calendar
+export const posts = sqliteTable("posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   platform: text("platform").notNull(),
   content: text("content").notNull(),
-  scheduledTime: timestamp("scheduled_time").notNull(),
+  scheduledTime: integer("scheduled_time", { mode: "timestamp" }).notNull(),
   status: text("status").default("draft"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp" }).defaultNow(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).defaultNow(),
   userId: integer("user_id").references(() => users.id),
 });
 

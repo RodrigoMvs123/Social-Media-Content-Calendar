@@ -8,9 +8,16 @@ import {
   TrendingUp, 
   Send, 
   Edit, 
-  Trash2 
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { deletePost } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import EditPostDialog from '@/components/dialogs/EditPostDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface PostItemProps {
   post: Post;
@@ -66,64 +73,220 @@ const getStatusBadge = (status?: string) => {
 
 const PostItem = ({ post, viewType }: PostItemProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const platformIconClass = getPlatformColor(post.platform);
   const formattedTime = format(new Date(post.scheduledTime), 'h:mm a');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
+  const handleEdit = () => {
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleDelete = async () => {
+    try {
+      await deletePost(post.id);
+      queryClient.invalidateQueries({ queryKey: ['/api/calendar'] });
+      toast({
+        title: "Post deleted",
+        description: "The post has been successfully deleted.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the post. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsDeleteDialogOpen(false);
+  };
+  
+  // Grid view layout
+  if (viewType === 'grid') {
+    return (
+      <>
+        <Card 
+          className="overflow-hidden hover:shadow-md transition-shadow duration-200"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className={`w-8 h-8 ${platformIconClass} rounded-lg flex items-center justify-center mr-2`}>
+                  {getPlatformIcon(post.platform)}
+                </div>
+                <Badge variant="outline">
+                  {post.platform}
+                </Badge>
+              </div>
+              <div className="flex items-center text-sm text-gray-500">
+                <Clock className="h-3 w-3 mr-1" />
+                {formattedTime}
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <p className="text-sm text-gray-900 line-clamp-3">{post.content}</p>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                {getStatusBadge(post.status)}
+              </div>
+              <div className="flex space-x-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        className="text-gray-400 hover:text-gray-500"
+                        onClick={handleEdit}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit post</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        className="text-gray-400 hover:text-gray-500"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete post</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+          </div>
+        </Card>
+        
+        <EditPostDialog 
+          open={isEditDialogOpen} 
+          onOpenChange={setIsEditDialogOpen} 
+          post={post}
+          onPostUpdated={() => queryClient.invalidateQueries({ queryKey: ['/api/calendar'] })}
+        />
+        
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the post.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+  
+  // List view layout
   return (
-    <div 
-      className="p-6 hover:bg-gray-50 transition-colors duration-150"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
-          <div className={`w-10 h-10 ${platformIconClass} rounded-lg flex items-center justify-center shadow-sm`}>
-            {getPlatformIcon(post.platform)}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <Badge variant="outline" className={`bg-${post.platform.toLowerCase()}-100 hover:bg-${post.platform.toLowerCase()}-200`}>
-                {post.platform}
-              </Badge>
-              <span className="ml-2 text-sm text-gray-500">{formattedTime}</span>
-            </div>
-            <div className="flex">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-gray-400 hover:text-gray-500 mr-2">
-                      <Edit className="h-5 w-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit post</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-gray-400 hover:text-gray-500">
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete post</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+    <>
+      <div 
+        className="p-6 hover:bg-gray-50 transition-colors duration-150"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="flex items-start space-x-4">
+          <div className="flex-shrink-0">
+            <div className={`w-10 h-10 ${platformIconClass} rounded-lg flex items-center justify-center shadow-sm`}>
+              {getPlatformIcon(post.platform)}
             </div>
           </div>
-          <p className="mt-1 text-sm text-gray-900">{post.content}</p>
-          <div className="mt-2">
-            {getStatusBadge(post.status)}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <Badge variant="outline">
+                  {post.platform}
+                </Badge>
+                <span className="ml-2 text-sm text-gray-500">{formattedTime}</span>
+              </div>
+              <div className="flex">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        className="text-gray-400 hover:text-gray-500 mr-2"
+                        onClick={handleEdit}
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit post</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        className="text-gray-400 hover:text-gray-500"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete post</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+            <p className="mt-1 text-sm text-gray-900">{post.content}</p>
+            <div className="mt-2">
+              {getStatusBadge(post.status)}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      
+      <EditPostDialog 
+        open={isEditDialogOpen} 
+        onOpenChange={setIsEditDialogOpen} 
+        post={post}
+        onPostUpdated={() => queryClient.invalidateQueries({ queryKey: ['/api/calendar'] })}
+      />
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the post.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

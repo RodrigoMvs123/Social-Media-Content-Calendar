@@ -1,9 +1,11 @@
 export interface Post {
-  id?: string;
+  id: number;
   platform: string;
   content: string;
-  scheduledTime: string;
+  scheduledTime: string | Date;
   status?: 'draft' | 'scheduled' | 'published' | 'needs_approval' | 'ready';
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface PostsGroupedByDate {

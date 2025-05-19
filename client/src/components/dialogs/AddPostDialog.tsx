@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, generateAIContent, optimizePostContent } from '@/lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,19 +16,28 @@ interface AddPostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPostCreated?: () => void;
+  initialContent?: string;
 }
 
 type Platform = 'Twitter' | 'LinkedIn' | 'Instagram' | 'Facebook';
 
-const AddPostDialog = ({ open, onOpenChange, onPostCreated }: AddPostDialogProps) => {
-  const [content, setContent] = useState('');
+const AddPostDialog = ({ open, onOpenChange, onPostCreated, initialContent = '' }: AddPostDialogProps) => {
+  const [content, setContent] = useState(initialContent);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['Twitter']);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState(format(new Date(), 'HH:mm'));
-  const [charCount, setCharCount] = useState(0);
+  const [charCount, setCharCount] = useState(initialContent.length);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Update content when initialContent changes
+  useEffect(() => {
+    if (initialContent) {
+      setContent(initialContent);
+      setCharCount(initialContent.length);
+    }
+  }, [initialContent]);
 
   const createPostMutation = useMutation({
     mutationFn: createPost,

@@ -1,5 +1,5 @@
 import { users, posts, type User, type InsertUser, type Post, type InsertPost } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db-adapter";
 import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
