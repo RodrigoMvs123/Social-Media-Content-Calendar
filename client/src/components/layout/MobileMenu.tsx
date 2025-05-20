@@ -40,6 +40,13 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
             Calendar
           </Link>
           <Link 
+            href="/connect" 
+            onClick={onClose} 
+            className="block px-4 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-blue-700"
+          >
+            Connect
+          </Link>
+          <Link 
             href="/reports" 
             onClick={onClose} 
             className="block px-4 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-blue-700"

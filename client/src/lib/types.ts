@@ -20,3 +20,13 @@ export interface FilterOptions {
   status: string;
   searchQuery: string;
 }
+
+export interface SocialMediaAccount {
+  id: number;
+  platform: string;
+  username: string;
+  connected: boolean;
+  connectedAt: string;
+  accessToken?: string;
+  tokenExpiry?: string;
+}

@@ -1,378 +1,239 @@
-import { useState, useRef, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPost, generateAIContent, optimizePostContent } from '@/lib/api';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
-import { Post } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { Sparkles } from 'lucide-react';
+import { CalendarIcon, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { socialAccountsApi, createPost } from '@/lib/api';
+import { SocialMediaAccount } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddPostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPostCreated?: () => void;
+  onPostCreated: () => void;
   initialContent?: string;
 }
 
-type Platform = 'Twitter' | 'LinkedIn' | 'Instagram' | 'Facebook';
+// Check if token is valid
+const isTokenValid = (account: SocialMediaAccount): boolean => {
+  if (!account.accessToken || !account.tokenExpiry) return false;
+  return new Date(account.tokenExpiry) > new Date();
+};
 
 const AddPostDialog = ({ open, onOpenChange, onPostCreated, initialContent = '' }: AddPostDialogProps) => {
   const [content, setContent] = useState(initialContent);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['Twitter']);
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [time, setTime] = useState(format(new Date(), 'HH:mm'));
-  const [charCount, setCharCount] = useState(initialContent.length);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [platform, setPlatform] = useState('');
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [time, setTime] = useState('12:00');
+  const [connectedAccounts, setConnectedAccounts] = useState<SocialMediaAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
+  
   // Update content when initialContent changes
   useEffect(() => {
     if (initialContent) {
       setContent(initialContent);
-      setCharCount(initialContent.length);
     }
   }, [initialContent]);
-
-  const createPostMutation = useMutation({
-    mutationFn: createPost,
-    onSuccess: () => {
-      // Invalidate and refetch calendar posts
-      queryClient.invalidateQueries({ queryKey: ['/api/calendar'] });
+  
+  // Load connected accounts on mount
+  useEffect(() => {
+    const loadAccounts = async () => {
+      if (!open) return;
       
-      // Show success toast
+      try {
+        setIsLoading(true);
+        const accounts = await socialAccountsApi.getAll();
+        setConnectedAccounts(accounts);
+      } catch (error) {
+        console.error('Failed to load accounts:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load connected accounts.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadAccounts();
+  }, [open, toast]);
+  
+  const handleSubmit = async () => {
+    if (!content || !platform || !date) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Combine date and time
+      const [hours, minutes] = time.split(':').map(Number);
+      const scheduledTime = new Date(date);
+      scheduledTime.setHours(hours, minutes);
+      
+      await createPost({
+        content,
+        platform,
+        scheduledTime,
+        status: 'scheduled',
+      });
+      
       toast({
-        title: 'Post scheduled',
-        description: 'Your post has been scheduled successfully.',
-        variant: 'default',
+        title: "Post scheduled",
+        description: "Your post has been scheduled successfully.",
       });
       
       // Reset form
-      resetForm();
+      setContent('');
+      setPlatform('');
+      setDate(new Date());
+      setTime('12:00');
       
-      // Close dialog
+      // Close dialog and refresh posts
       onOpenChange(false);
-      
-      // Call onPostCreated callback if provided
-      if (onPostCreated) {
-        onPostCreated();
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to schedule post: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const resetForm = () => {
-    setContent('');
-    setSelectedPlatforms(['Twitter']);
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setTime(format(new Date(), 'HH:mm'));
-    setCharCount(0);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleContentChange = (value: string) => {
-    setContent(value);
-    setCharCount(value.length);
-  };
-
-  const handlePlatformToggle = (platform: Platform) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platform) 
-        ? prev.filter(p => p !== platform) 
-        : [...prev, platform]
-    );
-  };
-
-  const handleSaveDraft = () => {
-    handleSubmit('draft');
-  };
-
-  const handleSubmit = (status: 'draft' | 'scheduled' = 'scheduled') => {
-    // Combine date and time for scheduled time
-    const scheduledDate = new Date(`${date}T${time}`);
-    
-    // Create a post for each selected platform
-    selectedPlatforms.forEach(platform => {
-      const newPost: Omit<Post, 'id'> = {
-        platform,
-        content,
-        scheduledTime: scheduledDate.toISOString(),
-        status,
-      };
-      
-      createPostMutation.mutate(newPost);
-    });
-  };
-
-  const isPlatformSelected = (platform: Platform) => selectedPlatforms.includes(platform);
-
-  // State for AI content generation
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationPrompt, setGenerationPrompt] = useState('');
-
-  const handleGenerateAI = async () => {
-    if (!generationPrompt.trim()) {
-      toast({
-        title: 'Prompt Required',
-        description: 'Please enter a topic or idea for the AI to generate content about.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      setIsGenerating(true);
-      
-      // Get the first selected platform or default to Twitter
-      const platform = selectedPlatforms[0] || 'Twitter';
-      
-      // Generate content using OpenAI
-      const generatedContent = await generateAIContent(generationPrompt, platform);
-      
-      // Update the content field
-      setContent(generatedContent);
-      setCharCount(generatedContent.length);
-      
-      toast({
-        title: 'Content Generated',
-        description: 'AI-generated content has been added to your post.',
-      });
+      onPostCreated();
     } catch (error) {
-      console.error('Error generating AI content:', error);
-      
-      // If the API returns an error about quota or API key, show a specific message
-      if (error instanceof Error && 
-          (error.message.includes('quota') || 
-           error.message.includes('API key') || 
-           error.message.includes('rate limit'))) {
-        toast({
-          title: 'OpenAI API Error',
-          description: 'There was an issue with the OpenAI API. Please check your API key and quota.',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Generation Failed',
-          description: error instanceof Error ? error.message : 'Failed to generate content. Try again with a different prompt.',
-          variant: 'destructive',
-        });
-      }
-      
-      // Generate fallback content based on platform and prompt
-      const selectedPlatform = selectedPlatforms[0] || 'Twitter';
-      const platformText = selectedPlatform === 'Twitter' ? 'tweet' : 
-                          selectedPlatform === 'LinkedIn' ? 'professional post' :
-                          selectedPlatform === 'Instagram' ? 'instagram caption' : 'social media post';
-                          
-      setContent(`Draft ${platformText} about: ${generationPrompt}`);
-      setCharCount((`Draft ${platformText} about: ${generationPrompt}`).length);
+      toast({
+        title: "Error",
+        description: "Failed to schedule post. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
+  
+  // Filter to only show connected platforms with valid tokens
+  const validPlatforms = connectedAccounts
+    .filter(account => account.connected && isTokenValid(account))
+    .map(account => account.platform);
+  
+  const showConnectionWarning = validPlatforms.length === 0;
+
+  // Get selected platforms from localStorage
+  const getSelectedPlatforms = () => {
+    try {
+      const selected = localStorage.getItem('selectedPlatforms');
+      return selected ? JSON.parse(selected) : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  // Filter platforms to only show selected ones if any are selected
+  const selectedPlatforms = getSelectedPlatforms();
+  const availablePlatforms = selectedPlatforms.length > 0
+    ? validPlatforms.filter(p => selectedPlatforms.includes(p))
+    : validPlatforms;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-medium">Create New Post</DialogTitle>
+          <DialogTitle>Add New Post</DialogTitle>
           <DialogDescription>
-            Fill in the details of your new social media post.
+            Create a new post to schedule across your social media platforms.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 mt-4">
-          {/* Platform Selection */}
-          <div>
-            <Label className="block text-sm font-medium mb-1">Platform</Label>
-            <div className="flex flex-wrap gap-2">
-              <div 
-                className={`inline-flex items-center px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                  isPlatformSelected('Twitter') 
-                    ? 'border-blue-300 bg-blue-50 text-blue-700' 
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handlePlatformToggle('Twitter')}
-              >
-                <Checkbox 
-                  id="twitter" 
-                  checked={isPlatformSelected('Twitter')} 
-                  onCheckedChange={() => handlePlatformToggle('Twitter')}
-                  className="mr-2"
-                />
-                Twitter
-              </div>
-              <div 
-                className={`inline-flex items-center px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                  isPlatformSelected('LinkedIn') 
-                    ? 'border-blue-300 bg-blue-50 text-blue-700' 
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handlePlatformToggle('LinkedIn')}
-              >
-                <Checkbox 
-                  id="linkedin" 
-                  checked={isPlatformSelected('LinkedIn')} 
-                  onCheckedChange={() => handlePlatformToggle('LinkedIn')}
-                  className="mr-2"
-                />
-                LinkedIn
-              </div>
-              <div 
-                className={`inline-flex items-center px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                  isPlatformSelected('Instagram') 
-                    ? 'border-blue-300 bg-blue-50 text-blue-700' 
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handlePlatformToggle('Instagram')}
-              >
-                <Checkbox 
-                  id="instagram" 
-                  checked={isPlatformSelected('Instagram')} 
-                  onCheckedChange={() => handlePlatformToggle('Instagram')}
-                  className="mr-2"
-                />
-                Instagram
-              </div>
-              <div 
-                className={`inline-flex items-center px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                  isPlatformSelected('Facebook') 
-                    ? 'border-blue-300 bg-blue-50 text-blue-700' 
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handlePlatformToggle('Facebook')}
-              >
-                <Checkbox 
-                  id="facebook" 
-                  checked={isPlatformSelected('Facebook')} 
-                  onCheckedChange={() => handlePlatformToggle('Facebook')}
-                  className="mr-2"
-                />
-                Facebook
-              </div>
-            </div>
+        {showConnectionWarning && (
+          <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
+            <AlertCircle className="h-4 w-4 text-yellow-800" />
+            <AlertDescription>
+              No connected social media accounts found. <a href="/connect" className="underline font-medium">Connect your accounts</a> to schedule posts.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="platform">Platform</Label>
+            <Select value={platform} onValueChange={setPlatform}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {availablePlatforms.length > 0 ? (
+                  availablePlatforms.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="Twitter">Twitter</SelectItem>
+                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    <SelectItem value="Instagram">Instagram</SelectItem>
+                    <SelectItem value="Facebook">Facebook</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
           </div>
           
-          {/* Content */}
-          <div>
-            <Label htmlFor="post-content" className="block text-sm font-medium mb-1">Content</Label>
+          <div className="grid gap-2">
+            <Label htmlFor="content">Content</Label>
             <Textarea
-              id="post-content"
-              rows={4}
-              placeholder="What would you like to share?"
+              id="content"
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-2"
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="What do you want to share?"
+              className="min-h-[100px]"
             />
-            <div className="mt-1 flex flex-col">
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500">{charCount}/280 characters</span>
-                <button 
-                  type="button" 
-                  className="text-xs text-blue-600 hover:text-blue-700"
-                  onClick={() => document.getElementById('ai-generation-section')?.classList.toggle('hidden')}
-                >
-                  AI Generation Options
-                </button>
-              </div>
-              
-              {/* AI Generation Section */}
-              <div id="ai-generation-section" className="mt-3 p-3 border border-blue-100 rounded-md bg-blue-50 hidden">
-                <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center">
-                  <Sparkles className="w-4 h-4 mr-1 text-blue-600" />
-                  Generate Content with AI
-                </h4>
-                <div className="flex items-start space-x-2">
-                  <Input
-                    type="text"
-                    placeholder="Enter a topic or prompt (e.g., 'Announce our new feature launch')"
-                    value={generationPrompt}
-                    onChange={(e) => setGenerationPrompt(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button 
-                    size="sm" 
-                    onClick={handleGenerateAI}
-                    disabled={isGenerating || !generationPrompt.trim()}
-                    className="whitespace-nowrap"
-                  >
-                    {isGenerating ? 'Generating...' : 'Generate'}
-                  </Button>
-                </div>
-                <p className="text-xs text-blue-700 mt-1">
-                  AI will create content optimized for {selectedPlatforms[0] || 'Twitter'}
-                </p>
-              </div>
-            </div>
           </div>
           
-          {/* Schedule */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="post-date" className="block text-sm font-medium mb-1">Schedule Date</Label>
-              <Input
-                type="date"
-                id="post-date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-2"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
-            <div>
-              <Label htmlFor="post-time" className="block text-sm font-medium mb-1">Schedule Time</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="time">Time</Label>
               <Input
+                id="time"
                 type="time"
-                id="post-time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-2"
               />
-            </div>
-          </div>
-          
-          {/* Media Upload */}
-          <div>
-            <Label className="block text-sm font-medium mb-1">Media (optional)</Label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div className="flex text-sm text-gray-600">
-                  <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                    <span>Upload a file</span>
-                    <input ref={fileInputRef} id="file-upload" name="file-upload" type="file" className="sr-only" />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF up to 10MB
-                </p>
-              </div>
             </div>
           </div>
         </div>
         
-        <DialogFooter className="mt-5 sm:mt-6 flex justify-end space-x-3">
-          <Button variant="outline" onClick={handleSaveDraft} disabled={createPostMutation.isPending}>
-            Save as Draft
-          </Button>
-          <Button onClick={() => handleSubmit()} disabled={createPostMutation.isPending || selectedPlatforms.length === 0 || !content.trim()}>
-            {createPostMutation.isPending ? 'Scheduling...' : 'Schedule Post'}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!content || !platform || !date || isLoading || showConnectionWarning}
+          >
+            {isLoading ? 'Scheduling...' : 'Schedule Post'}
           </Button>
         </DialogFooter>
       </DialogContent>

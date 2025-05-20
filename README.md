@@ -2,6 +2,14 @@
 
 A modern web application for planning and scheduling social media content across multiple platforms.
 
+## Technologies Used
+
+- React with TypeScript
+- Vite for frontend development
+- Tailwind CSS for styling
+- React Query for data management
+- Mock API for simulating backend functionality
+
 ## Quick Start
 
 1. Clone the repository:
@@ -47,10 +55,3 @@ To modify the mock data, edit the following file:
 client/src/lib/mockApi.ts
 ```
 
-## Technologies Used
-
-- React with TypeScript
-- Vite for frontend development
-- Tailwind CSS for styling
-- React Query for data management
-- Mock API for simulating backend functionality

@@ -8,12 +8,14 @@ import Home from "@/pages/home";
 import Settings from "@/pages/settings";
 import Calendar from "@/pages/calendar";
 import Reports from "@/pages/reports";
+import Connect from "@/pages/connect";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/calendar" component={Calendar} />
+      <Route path="/connect" component={Connect} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
       {/* Fallback to 404 */}

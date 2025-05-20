@@ -1,32 +1,41 @@
-// This file provides a unified interface for database operations
-// It will use either the real database or the mock database based on environment
+import { DatabaseAdapter } from './db-adapter';
+import { SQLiteAdapter } from './sqlite-db';
+import { validateEnv } from './validateEnv';
 
-import { mockDb, testDatabaseConnection as mockTestConnection } from './mock-db';
+// Get database type from environment variables
+const dbType = process.env.DB_TYPE || 'sqlite';
+const dbPath = process.env.DB_PATH || './data.sqlite';
 
-let useRealDb = false;
-let realDb: any = null;
-let realTestConnection: any = null;
+// Create database adapter based on configuration
+let dbAdapter: DatabaseAdapter;
 
-// Try to import the real database, but fall back to mock if it fails
-try {
-  if (process.env.DATABASE_URL) {
-    // Only attempt to use real DB if DATABASE_URL is set
-    const { db, testDatabaseConnection } = await import('./db');
-    realDb = db;
-    realTestConnection = testDatabaseConnection;
-    useRealDb = true;
-    console.log('Using real database connection');
-  } else {
-    console.log('DATABASE_URL not set, using mock database');
-  }
-} catch (error) {
-  console.log('Error connecting to real database, using mock database instead');
-  console.error(error);
+switch (dbType.toLowerCase()) {
+  case 'sqlite':
+    dbAdapter = new SQLiteAdapter(dbPath);
+    break;
+  // Add more database adapters here as needed
+  // case 'postgres':
+  //   dbAdapter = new PostgresAdapter();
+  //   break;
+  // case 'mongodb':
+  //   dbAdapter = new MongoDBAdapter();
+  //   break;
+  default:
+    console.warn(`Unknown database type: ${dbType}, falling back to SQLite`);
+    dbAdapter = new SQLiteAdapter(dbPath);
 }
 
-// Export the appropriate database interface
-export const db = useRealDb ? realDb : mockDb;
-export const testDatabaseConnection = useRealDb ? realTestConnection : mockTestConnection;
+// Initialize database
+const initializeDb = async () => {
+  try {
+    await dbAdapter.initialize();
+    console.log(`Database (${dbType}) initialized successfully`);
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  }
+};
 
-// For debugging
-export const isDatabaseMocked = !useRealDb;
+// Export the database adapter
+export const db = dbAdapter;
+export const initDb = initializeDb;

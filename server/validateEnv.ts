@@ -1,31 +1,29 @@
-// server/validateEnv.ts
+// Validate required environment variables
 export function validateEnv() {
-  const requiredEnvVars = [
-    'DATABASE_URL',
-    'SLACK_BOT_TOKEN',
-    'SLACK_SIGNING_SECRET',
-    'JWT_SECRET',
-    'CORS_ORIGINS'
+  const requiredVars = [
+    'SESSION_SECRET',
   ];
   
-  const missingEnvVars = requiredEnvVars.filter(
-    (envVar) => !process.env[envVar]
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.warn(`Missing required environment variables: ${missingVars.join(', ')}`);
+    console.warn('Using default values for development. DO NOT use in production!');
+  }
+  
+  // Check OAuth credentials
+  const oauthPlatforms = ['LINKEDIN', 'TWITTER', 'FACEBOOK', 'INSTAGRAM'];
+  const missingOAuth = oauthPlatforms.filter(platform => 
+    !process.env[`${platform}_CLIENT_ID`] || !process.env[`${platform}_CLIENT_SECRET`]
   );
   
-  if (missingEnvVars.length > 0) {
-    console.error('❌ Missing required environment variables:');
-    missingEnvVars.forEach((envVar) => {
-      console.error(`   - ${envVar}`);
-    });
-    console.error('Please check your .env file or environment settings.');
-    
-    // Optional: exit the process in development, but may want to continue in production
-    if (process.env.NODE_ENV === 'development') {
-      process.exit(1);
-    }
-  } else {
-    console.log('✅ All required environment variables are set');
+  if (missingOAuth.length > 0) {
+    console.warn(`Missing OAuth credentials for: ${missingOAuth.join(', ')}`);
+    console.warn('OAuth authentication will not work for these platforms.');
+  }
+  
+  // Check redirect URI
+  if (!process.env.OAUTH_REDIRECT_URI) {
+    console.warn('Missing OAUTH_REDIRECT_URI. Using default: http://localhost:3001/oauth/callback');
   }
 }
-
-// Then import and call this function in your index.ts after dotenv.config()
