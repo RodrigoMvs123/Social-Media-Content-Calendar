@@ -4,6 +4,13 @@ export function validateEnv() {
     'SESSION_SECRET',
   ];
   
+  // Check for database configuration
+  if (process.env.DB_TYPE === 'postgres' && !process.env.DATABASE_URL) {
+    console.error('Missing required environment variable: DATABASE_URL');
+    console.error('PostgreSQL connection requires DATABASE_URL to be set');
+    process.exit(1);
+  }
+  
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {

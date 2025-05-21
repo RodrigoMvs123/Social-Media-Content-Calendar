@@ -1,5 +1,6 @@
 import { DatabaseAdapter } from './db-adapter';
 import { SQLiteAdapter } from './sqlite-db';
+import { PostgresAdapter } from './postgres-db';
 import { validateEnv } from './validateEnv';
 
 // Get database type from environment variables
@@ -13,13 +14,9 @@ switch (dbType.toLowerCase()) {
   case 'sqlite':
     dbAdapter = new SQLiteAdapter(dbPath);
     break;
-  // Add more database adapters here as needed
-  // case 'postgres':
-  //   dbAdapter = new PostgresAdapter();
-  //   break;
-  // case 'mongodb':
-  //   dbAdapter = new MongoDBAdapter();
-  //   break;
+  case 'postgres':
+    dbAdapter = new PostgresAdapter();
+    break;
   default:
     console.warn(`Unknown database type: ${dbType}, falling back to SQLite`);
     dbAdapter = new SQLiteAdapter(dbPath);
