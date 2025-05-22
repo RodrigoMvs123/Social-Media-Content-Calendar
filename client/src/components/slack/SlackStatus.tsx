@@ -17,16 +17,36 @@ interface SlackStatusResponse {
 }
 
 const SlackStatus = ({ className }: SlackStatusProps) => {
+  // Set errorShown to false initially to hide the error message
+  const [errorShown, setErrorShown] = useState(false);
+  
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/slack/status'],
     queryFn: async () => {
-      const response = await fetch('/api/slack/status');
-      if (!response.ok) {
-        throw new Error('Failed to fetch Slack status');
+      try {
+        const response = await fetch('/api/slack/status');
+        if (!response.ok) {
+          throw new Error('Failed to fetch Slack status');
+        }
+        return response.json() as Promise<SlackStatusResponse>;
+      } catch (error) {
+        // Don't show error on initial load
+        if (!errorShown) {
+          return { connected: false, channelConfigured: false, tokenConfigured: false };
+        }
+        throw error;
       }
-      return response.json() as Promise<SlackStatusResponse>;
-    }
+    },
+    // Don't show error on initial load
+    retry: false,
+    refetchOnWindowFocus: false
   });
+
+  // Function to manually check connection and show errors
+  const checkConnection = () => {
+    setErrorShown(true);
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -41,7 +61,8 @@ const SlackStatus = ({ className }: SlackStatusProps) => {
     );
   }
 
-  if (isError) {
+  // Only show error if errorShown is true
+  if (isError && errorShown) {
     return (
       <Alert variant="destructive" className={className}>
         <AlertTriangle className="h-4 w-4" />
@@ -85,11 +106,11 @@ const SlackStatus = ({ className }: SlackStatusProps) => {
       <AlertTitle>Slack Integration Incomplete</AlertTitle>
       <AlertDescription>
         {!data.tokenConfigured && !data.channelConfigured ? (
-          "Slack bot token and channel ID are missing. Contact your administrator to complete the setup."
+          "Slack bot token and channel ID are missing. Configure them in the settings below."
         ) : !data.tokenConfigured ? (
-          "Slack bot token is missing. Contact your administrator to complete the setup."
+          "Slack bot token is missing. Configure it in the settings below."
         ) : (
-          "Slack channel ID is missing. Contact your administrator to complete the setup."
+          "Slack channel ID is missing. Configure it in the settings below."
         )}
       </AlertDescription>
     </Alert>

@@ -68,19 +68,21 @@ const SlackSettings = () => {
         <div className="space-y-2">
           <div className="flex items-center">
             <Label htmlFor="bot-token" className="flex-grow">Bot Token</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-gray-400" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="w-80 text-sm">
-                    A Bot Token allows this app to send messages to your Slack workspace. 
-                    You can create one in the Slack API dashboard under "OAuth & Permissions".
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="ml-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="w-80 text-sm">
+                      A Bot Token allows this app to send messages to your Slack workspace. 
+                      You can create one in the Slack API dashboard under "OAuth & Permissions".
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <Input
             id="bot-token"
@@ -97,19 +99,21 @@ const SlackSettings = () => {
         <div className="space-y-2">
           <div className="flex items-center">
             <Label htmlFor="channel-id" className="flex-grow">Channel ID</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-gray-400" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="w-80 text-sm">
-                    The Channel ID is where notifications will be sent. 
-                    Right-click on a channel in Slack and select "Copy Link" to find this.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="ml-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="w-80 text-sm">
+                      The Channel ID is where notifications will be sent. 
+                      Right-click on a channel in Slack and select "Copy Link" to find this.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <Input
             id="channel-id"

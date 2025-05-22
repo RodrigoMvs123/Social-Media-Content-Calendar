@@ -46,82 +46,84 @@ const FilterBar = ({ filters, onFilterChange }: FilterBarProps) => {
   return (
     <Card className="mb-6">
       <CardContent className="pt-4 pb-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-grow">
-            {/* Platform Filter */}
-            <div>
-              <Label htmlFor="platform-filter" className="text-sm mb-1">Platform</Label>
-              <Select 
-                value={filters.platform} 
-                onValueChange={(value) => onFilterChange({ platform: value })}
-              >
-                <SelectTrigger id="platform-filter" className="bg-gray-50">
-                  <SelectValue placeholder="All Platforms" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="Twitter">Twitter</SelectItem>
-                  <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                  <SelectItem value="Instagram">Instagram</SelectItem>
-                  <SelectItem value="Facebook">Facebook</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Date Range Filter */}
-            <div>
-              <Label htmlFor="date-filter" className="text-sm mb-1">Date Range</Label>
-              <Select 
-                value={filters.dateRange} 
-                onValueChange={(value) => onFilterChange({ dateRange: value })}
-              >
-                <SelectTrigger id="date-filter" className="bg-gray-50">
-                  <SelectValue placeholder="Upcoming" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="next-week">Next Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Status Filter */}
-            <div>
-              <Label htmlFor="status-filter" className="text-sm mb-1">Status</Label>
-              <Select 
-                value={filters.status} 
-                onValueChange={(value) => onFilterChange({ status: value })}
-              >
-                <SelectTrigger id="status-filter" className="bg-gray-50">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="needs_approval">Needs Approval</SelectItem>
-                  <SelectItem value="ready">Ready to Publish</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Platform Filter */}
+          <div>
+            <Label htmlFor="platform-filter" className="text-sm mb-1">Platform</Label>
+            <Select 
+              value={filters.platform} 
+              onValueChange={(value) => onFilterChange({ platform: value })}
+            >
+              <SelectTrigger id="platform-filter" className="bg-gray-50">
+                <SelectValue placeholder="All Platforms" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Platforms</SelectItem>
+                <SelectItem value="Twitter">Twitter</SelectItem>
+                <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                <SelectItem value="Instagram">Instagram</SelectItem>
+                <SelectItem value="Facebook">Facebook</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Date Range Filter */}
+          <div>
+            <Label htmlFor="date-filter" className="text-sm mb-1">Date Range</Label>
+            <Select 
+              value={filters.dateRange} 
+              onValueChange={(value) => onFilterChange({ dateRange: value })}
+            >
+              <SelectTrigger id="date-filter" className="bg-gray-50">
+                <SelectValue placeholder="Upcoming" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="this-week">This Week</SelectItem>
+                <SelectItem value="next-week">Next Week</SelectItem>
+                <SelectItem value="this-month">This Month</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Status Filter */}
+          <div>
+            <Label htmlFor="status-filter" className="text-sm mb-1">Status</Label>
+            <Select 
+              value={filters.status} 
+              onValueChange={(value) => onFilterChange({ status: value })}
+            >
+              <SelectTrigger id="status-filter" className="bg-gray-50">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="needs_approval">Needs Approval</SelectItem>
+                <SelectItem value="ready">Ready to Publish</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           {/* Search */}
-          <div className="relative flex-grow max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+          <div>
+            <Label htmlFor="search-posts" className="text-sm mb-1">Search posts</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input
+                id="search-posts"
+                type="text"
+                placeholder="Search posts..."
+                className="pl-10 pr-4 py-2 bg-gray-50"
+                defaultValue={filters.searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
             </div>
-            <Input
-              type="text"
-              placeholder="Search posts..."
-              className="pl-10 pr-4 py-2 bg-gray-50"
-              defaultValue={filters.searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
           </div>
         </div>
       </CardContent>

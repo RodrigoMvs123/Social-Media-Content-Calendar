@@ -136,37 +136,21 @@ const PostItem = ({ post, viewType }: PostItemProps) => {
                 {getStatusBadge(post.status)}
               </div>
               <div className="flex space-x-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button 
-                        className="text-gray-400 hover:text-gray-500"
-                        onClick={handleEdit}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Edit post</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button 
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={handleEdit}
+                  aria-label="Edit post"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
                 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button 
-                        className="text-gray-400 hover:text-gray-500"
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Delete post</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button 
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  aria-label="Delete post"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -222,37 +206,21 @@ const PostItem = ({ post, viewType }: PostItemProps) => {
                 <span className="ml-2 text-sm text-gray-500">{formattedTime}</span>
               </div>
               <div className="flex">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button 
-                        className="text-gray-400 hover:text-gray-500 mr-2"
-                        onClick={handleEdit}
-                      >
-                        <Edit className="h-5 w-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Edit post</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button 
+                  className="text-gray-400 hover:text-gray-500 mr-2"
+                  onClick={handleEdit}
+                  aria-label="Edit post"
+                >
+                  <Edit className="h-5 w-5" />
+                </button>
                 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button 
-                        className="text-gray-400 hover:text-gray-500"
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Delete post</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button 
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  aria-label="Delete post"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
               </div>
             </div>
             <p className="mt-1 text-sm text-gray-900">{post.content}</p>
